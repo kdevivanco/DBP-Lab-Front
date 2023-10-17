@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Art API Information</title>
+</head>
+<body>
+    <p style="color: grey;">Powered by the  Art Institute of Chicago API</p>
+    <hr style="border: 0.5px solid rgb(185, 61, 61);;">
+    <div class="title-div">
+        <h1 id="title" style="margin-bottom: 0px;">ArtFix</h1>
+    </div>
+    <hr style="border: 0.5px solid rgb(185, 61, 61);; margin-bottom: 3rem;">
+
+    <p class="nav" id="little-text"  style="color: rgb(185, 61, 61);
+    font-style: italic;">GET INSPIRED WITH NEW ART</p>
+    <!-- <p class="nav"></p> -->
+    <div class="nav">
+        
+        <label for="artwork-number" >CHOOSE A NUMBER |1-100|: </label>
+        <input type="number" id="artwork-number" min="1" max="100" step="1">
+        <button id="fetch-artwork-button">SEARCH</button>
+    </div>
+    <div id="artwork-list" class="artwork-list">
+        <p style="text-align: center;">Get your inspo! </p>
+    </div>
+
+    <style>
+        *{
+             font-family:Arial, Helvetica, sans-serif ;
+             background-color: #dadad0;
+        }
+        .nav{
+            display: flex;
+            justify-content: space-between;
+            width: 500px;
+            margin: auto;
+        }
+
+        
+        .btn{
+            font-size:1rem;
+            padding: 1rem;
+            border-radius: 1rem;
+            border: 1px solid black;
+        }
+     
+        #title{
+            font-family: 'Libre Franklin', sans-serif;
+font-family: 'Roboto', sans-serif;
+            font-size: 10rem;
+            font-weight: 800;
+            color: rgb(185, 61, 61);
+            padding-left: 3rem;
+            padding-bottom: 0rem;
+            margin-bottom:0px;
+        }
+        .title-div>p{
+            padding-left: 3rem;
+            color: rgb(184, 61, 61);
+        }
+
+        .title-div{
+            /* border: 1px solid black; */
+            margin: 1rem;
+            width: 600px;
+            margin-bottom:5rem;
+        }
+
+        .artwork {
+            margin: 20px;
+            text-align: center;
+        }
+        .artwork img {
+            max-width: 100%;
+            height: 300px;
+        }
+        .description {
+            margin-top: 10px;
+        }
+
+        
+        #artwork-list{
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            border: 1px solid black;
+            width: 500px;
+            margin: auto;
+            margin-top: 2rem;
+            min-height: 300px;
+        }
+
+       
+
+    </style>
+
+    <script>
+        let artworkIDs = [];
+
+        // Function to make an HTTP request
+        function makeRequest(url, callback) {
+            var xhr = new XMLHttpRequest();
+            xhr.open("GET", url, true);
+            xhr.onreadystatechange = function () {
+                if (xhr.readyState === 4) {
+                    if (xhr.status === 200) {
+                        callback(JSON.parse(xhr.responseText));
+                    } else if (xhr.status === 404) {
+                        displayErrorMessage();
+                    }
+                }
+            };
+            xhr.send();
+        }
+
+        // Function to display an error message
+        function displayErrorMessage() {
+            const artworkList = document.getElementById("artwork-list");
+            artworkList.innerHTML = "Sorry, the artwork was not found.";
+        }
+
+        // Function to fetch artwork data
+        function fetchArtwork() {
+            const inputNumber = document.getElementById("artwork-number").value;
+            if (inputNumber >= 1 && inputNumber <= 100) {
+                const selectedID = artworkIDs[inputNumber - 1];
+                const apiUrl = `https://api.artic.edu/api/v1/artworks/${selectedID}`;
+                console.log(apiUrl);
+                const artworkList = document.getElementById("artwork-list");
+                artworkList.innerHTML = ""; // Clear previous artwork data
+
+                makeRequest(apiUrl, function (data) {
+                    if (data.data) {
+                        const artwork = data.data;
+                        const div = document.createElement("div");
+                        div.className = "artwork";
+
+                        let image_id = artwork.image_id;
+                        if (image_id == null){
+                            image_id = artwork.alt_image_ids[0];
+                        }
+                        const iiifUrl = `https://www.artic.edu/iiif/2/${image_id}/full/843,/0/default.jpg`;
+                        
+                        const img = document.createElement("img");
+                        img.src = iiifUrl;
+                        if (artwork.thumbnail){
+
+                            img.alt = artwork.thumbnail.alt_text;
+                        }
+                        else{
+                            img.alt = "";
+                        }
+
+                        const title = document.createElement("h2");
+                        title.textContent = artwork.title;
+
+                        const description = document.createElement("p");
+                        description.className = "description";
+
+                        if (artwork.thumbnail != null && artwork.thumbnail.alt_text != null) {
+                            
+                            description.textContent = artwork.thumbnail.alt_text;
+                        }
+                        else{
+                            description.textContent = "";
+                        }
+
+                        const dimensions = document.createElement("p");
+                        dimensions.textContent = `Dimensions: ${artwork.dimensions[0].width_cm} cm × ${artwork.dimensions[0].height_cm} cm`;
+
+                        const medium = document.createElement("p");
+                        medium.textContent = `Medium: ${artwork.medium_display}`;
+
+                        div.appendChild(img);
+                        div.appendChild(title);
+                        div.appendChild(description);
+                        div.appendChild(dimensions);
+                        div.appendChild(medium);
+
+                        artworkList.appendChild(div);
+                    } else {
+                        displayErrorMessage();
+                    }
+                });
+            } else {
+                displayErrorMessage();
+            }
+        }
+
+        // Add an event listener to the "Fetch Artwork" button
+        document.getElementById("fetch-artwork-button").addEventListener("click", fetchArtwork);
+
+        // Fetch the list of artwork IDs
+        const initialApiUrl = "https://api.artic.edu/api/v1/artworks/?limit=100";
+        makeRequest(initialApiUrl, function (data) {
+            artworkIDs = data.data.map(artwork => artwork.id);
+        });
+    </script>
+</body>
+</html>
+
